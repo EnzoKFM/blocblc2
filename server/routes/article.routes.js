@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const articleController = require('../controllers/article.controller');
 const verifyToken = require('../middleware/auth');
-const upload = require('../middleware/upload')
-const sanitizeCommentMiddleware = require('../middleware/sanitizeCommentMiddleware')
+const upload = require('../middleware/upload');
+const sanitizeCommentMiddleware = require('../middleware/sanitizeCommentMiddleware');
 
 router.get('/', articleController.getAllArticles);
 router.get('/:id', articleController.getArticleById);
