@@ -5,6 +5,7 @@ const { initDB } = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 const articleRoutes = require('./routes/article.routes');
 const userRoutes = require('./routes/user.routes');
+const commentsRoutes = require('./routes/comments.routes');
 
 require('dotenv').config();
 
@@ -25,6 +26,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/comments', commentsRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
