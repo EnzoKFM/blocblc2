@@ -8,7 +8,13 @@ const ArticleDetail = () => {
     const { id } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+
+
     const [article, setArticle] = useState(null);
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState('');
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingContent, setEditingContent] = useState('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -16,6 +22,9 @@ const ArticleDetail = () => {
             try {
                 const { data } = await API.get(`/articles/${id}`);
                 setArticle(data);
+
+                const { data: commentsData } = await API.get(`/articles/${id}/comments`);
+                setComments(commentsData);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -33,6 +42,51 @@ const ArticleDetail = () => {
             } catch (err) {
                 console.error(err);
             }
+        }
+    };
+
+    const handleAddComment = async (e) => {
+        e.preventDefault();
+        if (!newComment.trim()) return;
+
+        try {
+            const { data } = await API.post(`/articles/${id}/comments`, {
+                content: newComment,
+                user_id: user.id
+            });
+
+            const { data: comments } = await API.get(`/articles/${id}/comments`);
+            setComments(comments);
+
+            setNewComment('');
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!window.confirm('Supprimer ce commentaire ?')) return;
+
+        try {
+            await API.delete(`/comments/${commentId}`);
+            setComments(comments.filter(c => c.id !== commentId));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleUpdateComment = async (commentId) => {
+        try {
+            await API.put(`/comments/${commentId}`, {
+                content: editingContent
+            });
+
+            const { data } = await API.get(`/articles/${id}/comments`);
+            setComments(data);
+
+            setEditingCommentId(null);
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -83,6 +137,83 @@ const ArticleDetail = () => {
                     {article.content}
                 </div>
             </article>
+            <section style={{ marginTop: '50px' }}>
+                <h2>Commentaires ({comments.length})</h2>
+
+                {user && (
+                    <form onSubmit={handleAddComment} style={{ marginBottom: '30px' }}>
+                        <textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="Ajouter un commentaire..."
+                            style={{ width: '100%', padding: '10px', minHeight: '80px' }}
+                        />
+                        <button type="submit" className="btn" style={{ marginTop: '10px' }}>
+                            Publier
+                        </button>
+                    </form>
+                )}
+                
+                {comments.map(comment => {
+                    const isCommentOwner = user && user.id === comment.user_id;
+
+                    return (
+                        <div key={comment.id} style={{
+                            borderBottom: '1px solid #ccc',
+                            padding: '15px 0'
+                        }}>
+                            <strong>{comment.username}</strong>
+                            <div style={{ fontSize: '0.8rem', color: '#777' }}>
+                                {new Date(comment.created_at).toLocaleDateString()}
+                            </div>
+
+                            {editingCommentId === comment.id ? (
+                                <>
+                                    <textarea
+                                        value={editingContent}
+                                        onChange={(e) => setEditingContent(e.target.value)}
+                                        style={{ width: '100%', marginTop: '10px' }}
+                                    />
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button onClick={() => handleUpdateComment(comment.id)} className='btn' style={{ padding: '8px 12px', background: '#13b33b', color: 'white', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            Enregistrer
+                                        </button>
+                                        <button onClick={() => setEditingCommentId(null)} className='btn' style={{ padding: '8px 12px', background: '#ef4444', color: 'white', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            Annuler
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <p style={{ marginTop: '10px', marginBottom: '10px' }}>
+                                    {comment.content}
+                                </p>
+                            )}
+
+                            {isCommentOwner && editingCommentId !== comment.id && (
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button
+                                        onClick={() => {
+                                            setEditingCommentId(comment.id);
+                                            setEditingContent(comment.content);
+                                        }}
+                                        className="btn glass"
+                                        style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '5px', color: 'white' }}
+                                    >
+                                        Modifier
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteComment(comment.id)}
+                                        className="btn"
+                                        style={{ padding: '8px 12px', background: '#ef4444', color: 'white', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                    >
+                                        Supprimer
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </section>
         </div>
     );
 };

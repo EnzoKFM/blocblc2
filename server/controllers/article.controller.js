@@ -79,3 +79,45 @@ exports.deleteArticle = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+exports.getCommentsById = async (req, res) => {
+    try {
+        const [comments] = await pool.query(`
+            SELECT comments.*, users.username
+            FROM comments
+            JOIN users ON comments.user_id = users.id
+            JOIN articles ON comments.article_id = articles.id
+            WHERE articles.id = ?
+            ORDER BY comments.created_at DESC
+        `, [req.params.id]);
+
+        res.json(comments);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+exports.createComment = async (req, res) => {
+    try {
+        const { content, user_id } = req.body;
+        const { id: article_id } = req.params;
+
+        const [result] = await pool.query(
+            `INSERT INTO comments (content, user_id, article_id) VALUES (?, ?, ?)`,
+            [content, user_id, article_id]
+        );
+
+        res.status(201).json({
+            id: result.insertId,
+            content,
+            user_id,
+            article_id,
+            created_at: result.created_at
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+    }
+};
